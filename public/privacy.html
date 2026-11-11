@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>سياسة الخصوصية | بيتك</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<main class="page">
+<p><a href="index.html">← العودة لبيتك</a></p>
+<h1>سياسة الخصوصية</h1>
+<p>هاي نسخة أولية مكتوبة بلغة بسيطة. راجعها مع مختص قانوني قبل الإطلاق التجاري.</p>
+
+<h2>شو بنجمع</h2>
+<ul>
+<li>عند الدخول بحساب Google: اسمك، بريدك، وصورة حسابك (بتتعامل معهم خدمة Firebase Authentication).</li>
+<li>عند نشر عرض: بيانات العقار، رقم هاتفك، رابط الموقع إن أضفته، والصور إن رفعتها.</li>
+<li>عند الإبلاغ عن عرض: سبب البلاغ ومعرّف حسابك.</li>
+</ul>
+
+<h2>شو بيظهر للناس</h2>
+<p>كل عرض منشور، وبما فيه رقم هاتفك واسمك وصور العقار، بيظهر لأي زائر للتطبيق، حتى لو ما كان مسجلاً. لا تنشر رقماً أو صوراً ما بدك الناس تشوفها.</p>
+
+<h2>كيف منستخدمها</h2>
+<p>فقط لتشغيل التطبيق: عرض العروض، تمكينك من إدارتها، ومراجعة البلاغات. ما منبيع بياناتك وما منستخدمها للإعلانات.</p>
+
+<h2>أين بتنخزن</h2>
+<p>على خدمات Google Firebase (Authentication وFirestore وStorage). كمان بيحمّل التطبيق خطوطاً من Google Fonts.</p>
+
+<h2>حذف بياناتك</h2>
+<p>من قائمة "حسابي" داخل التطبيق اختر "حذف حسابي وكل عروضي"، فبتنحذف عروضك وصورك وحسابك. بتقدر كمان تحذف أي عرض لحاله أو تنهيه بأي وقت. العروض بتنتهي تلقائياً وبتخفي من العرض العام بعد المدة المحددة.</p>
+
+<h2>التواصل</h2>
+<p>لأي طلب يخص بياناتك: <span id="mail">راسل صاحب التطبيق</span></p>
+</main>
+<script type="module">
+import { OPTIONS } from './js/config.js';
+if (OPTIONS.contactEmail && !String(OPTIONS.contactEmail).startsWith('PASTE')) {
+  const a = document.createElement('a'); a.href = 'mailto:' + OPTIONS.contactEmail; a.textContent = OPTIONS.contactEmail;
+  document.getElementById('mail').replaceChildren(a);
+}
+</script>
+</body>
+</html>

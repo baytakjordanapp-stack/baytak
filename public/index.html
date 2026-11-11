@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>بيتك | عقارات الأردن</title>
+<meta name="description" content="بيوت وشقق للإيجار والبيع في الأردن. انشر عقارك أو دوّر على بيتك.">
+<meta name="theme-color" content="#1B6A58">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600&family=Readex+Pro:wght@500;600;700&display=swap">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app" class="wrap">
+  <header class="top">
+    <div class="brand">
+      <div class="mark" aria-hidden="true">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9.5h13V10"/><path d="M10 19.5v-5h4v5"/></svg>
+      </div>
+      <div><h1>بيتك</h1><p>بيوت للإيجار والبيع في الأردن</p></div>
+    </div>
+    <div class="who" id="who"></div>
+  </header>
+
+  <nav class="seg" role="tablist" aria-label="أقسام التطبيق">
+    <button role="tab" id="t-rent" data-tab="rent">للإيجار</button>
+    <button role="tab" id="t-sale" data-tab="sale">للبيع</button>
+    <button role="tab" id="t-mine" data-tab="mine">عروضي</button>
+  </nav>
+
+  <section class="filters" id="filters" aria-label="تصفية العروض">
+    <select class="field" id="f-city" aria-label="المدينة"></select>
+    <select class="field" id="f-kind" aria-label="نوع العقار"></select>
+    <select class="field" id="f-rooms" aria-label="عدد الغرف"></select>
+    <input class="field" id="f-max" type="number" inputmode="numeric" min="0" placeholder="أقصى سعر (د.أ)" aria-label="أقصى سعر بالدينار">
+    <select class="field" id="f-sort" aria-label="الترتيب">
+      <option value="new">الأحدث</option><option value="asc">الأرخص أولاً</option><option value="desc">الأغلى أولاً</option>
+    </select>
+  </section>
+
+  <div id="notice"></div>
+  <div class="count" id="count" aria-live="polite"></div>
+  <main class="grid" id="list"></main>
+
+  <footer class="foot">
+    <a href="privacy.html">سياسة الخصوصية</a> · <a href="terms.html">شروط الاستخدام</a>
+  </footer>
+
+  <button class="btn primary fab" id="addBtn">+ أضف عرضاً</button>
+
+  <dialog id="detail" aria-label="تفاصيل العرض"></dialog>
+  <dialog id="accountDlg" aria-label="حسابي"></dialog>
+
+  <dialog id="formDlg" aria-label="إضافة عرض">
+    <form class="sheet" id="addForm" novalidate>
+      <div class="pad sheethead" style="padding-top:16px"><h2>أضف عرضك</h2><button type="button" class="x" id="formX" aria-label="إغلاق">✕</button></div>
+      <div class="pad form">
+        <div class="full opts" role="radiogroup" aria-label="نوع العرض">
+          <label><input type="radio" name="type" value="rent" checked> للإيجار</label>
+          <label><input type="radio" name="type" value="sale"> للبيع</label>
+        </div>
+        <label>نوع العقار<select class="field" id="n-kind"></select></label>
+        <label>المدينة<select class="field" id="n-city"></select></label>
+        <label class="full">المنطقة أو الحي<input class="field" id="n-area" maxlength="60" placeholder="مثال: عبدون، الجبيهة، الحي الشرقي"></label>
+        <label class="full">رابط الموقع على خرائط جوجل (اختياري)<input class="field" id="n-map" type="text" inputmode="url" dir="ltr" placeholder="https://maps.app.goo.gl/..." style="text-align:start"><span class="hint">افتح موقع البيت بتطبيق خرائط جوجل، اضغط مشاركة، انسخ الرابط والصقه هون. بدونه بيظهر موقع تقريبي حسب المنطقة.</span></label>
+        <label><span id="n-price-l">الإيجار الشهري (دينار)</span><input class="field" id="n-price" type="number" inputmode="numeric" min="1" placeholder="350"></label>
+        <label>المساحة (م²) اختياري<input class="field" id="n-size" type="number" inputmode="numeric" min="0" placeholder="120"></label>
+        <label>غرف النوم<select class="field" id="n-rooms"></select></label>
+        <label>الحمامات<select class="field" id="n-baths"></select></label>
+        <label class="full check" id="n-furn-w"><input type="checkbox" id="n-furn"> مفروش</label>
+        <div class="full" id="photoBox">
+          <label>صور العقار (اختياري، حتى <span id="maxPh">8</span> صور)
+            <input class="field" id="n-photos" type="file" accept="image/*" multiple>
+          </label>
+          <div class="thumbs" id="thumbs"></div>
+        </div>
+        <label class="full">رقم الهاتف<input class="field" id="n-phone" type="tel" inputmode="tel" dir="ltr" placeholder="0791234567" style="text-align:start"></label>
+        <label class="full">وصف مختصر اختياري<textarea class="field" id="n-desc" maxlength="600" placeholder="الطابق، الإطلالة، الموقف، قرب الخدمات..."></textarea></label>
+        <p class="full err" id="formErr" role="alert"></p>
+        <p class="full hint">رقم هاتفك وصورك بيظهروا لكل زوّار بيتك. بنشره أنت بتتحمل مسؤولية صحة المعلومات. العرض بيبقى منشوراً مدة محدودة وبتقدر تجدده أو تحذفه بأي وقت.</p>
+        <div class="full row"><button type="submit" class="btn primary" id="submitBtn">نشر العرض</button><button type="button" class="btn" id="formCancel">إلغاء</button></div>
+      </div>
+    </form>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" hidden></div>
+</div>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
