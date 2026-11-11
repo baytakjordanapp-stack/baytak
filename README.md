@@ -5,19 +5,19 @@
 ## الملفات
 - `public/` موقع التطبيق كامل (بدون أي بناء أو تثبيت).
 - `public/js/config.js` الملف الوحيد اللي بتعدّله.
-- `firestore.rules` و`storage.rules` و`firestore.indexes.json` قواعد الأمان والفهرس.
+- `firestore.rules` و`firestore.indexes.json` قواعد الأمان والفهرس.
 - `tests/` اختبار محلي بنسخة Firebase وهمية (اختياري).
 
 ## أولاً: Firebase
 1. ادخل https://console.firebase.google.com بحساب Gmail وأنشئ مشروعاً جديداً.
 2. **Build ← Authentication ← Get started ← Google ← Enable**، واختر بريدك للدعم.
 3. **Build ← Firestore Database ← Create database** (اختر موقعاً قريباً، مثل `eur3` أو `me-central1`، ووضع Production).
-4. **Build ← Storage ← Get started** (لصور العروض). إذا طلب ترقية لخطة Blaze ولا تريد، افتح `config.js` وغيّر `photos: true` إلى `photos: false` وبتشتغل العروض بدون صور.
+4. الصور بتتخزن داخل Firestore نفسه (مصغّرة، حتى 5 صور للعرض)، فما بتحتاج Storage ولا خطة Blaze.
 5. **Project settings ← General ← Your apps ← أيقونة الويب `</>`**، سجّل تطبيقاً، وانسخ `firebaseConfig`.
 6. الصق القيم بـ `public/js/config.js` واكتب بريدك بـ `contactEmail`.
 
 ## ثانياً: القواعد والفهرس
-انسخ محتوى `firestore.rules` للوحة Firebase (Firestore ← Rules ← Publish)، ومحتوى `storage.rules` (Storage ← Rules ← Publish).
+انسخ محتوى `firestore.rules` للوحة Firebase (وأعد نشره كلما تغيّر الملف) (Firestore ← Rules ← Publish).
 الفهرس: أول مرة يفتح التطبيق وفي رسالة عن فهرس مطلوب، اضغط الرابط بالـ Console (أو انسخه من `firestore.indexes.json` يدوياً: collection `listings`، الحقول `status` ثم `type` ثم `createdAt` تنازلي).
 أو بالأوامر: `npm i -g firebase-tools && firebase login && firebase use --add && firebase deploy`.
 
@@ -50,5 +50,5 @@ git push -u origin main
 
 ## ما انختبر وما لا
 مُختبَر بنسخة وهمية: الواجهة، التصفية، النشر، التحقق من الهاتف ورابط الخرائط، التعليم كمؤجّر، الحذف.
-غير مُختبَر على Firebase الحقيقي: القواعد، الفهرس، رفع الصور، تسجيل الدخول الفعلي. جرّبها بعد الربط بحسابك قبل الإطلاق.
+غير مُختبَر على Firebase الحقيقي: قواعد الصور الجديدة. (الفهرس وتسجيل الدخول والنشر جُرّبت على الموقع الحقيقي.) جرّبها بعد الربط بحسابك قبل الإطلاق.
 قبل الإطلاق: راجع `privacy.html` و`terms.html` مع مختص قانوني.

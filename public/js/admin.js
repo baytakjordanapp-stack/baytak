@@ -30,7 +30,11 @@ async function loadReports() {
     };
     if (listing && listing.status !== 'hidden') btn('إخفاء الإعلان', '', () => F.updateDoc(F.doc(F.db, 'listings', rep.listingId), { status: 'hidden' }));
     if (listing && listing.status === 'hidden') btn('إعادة إظهار', '', () => F.updateDoc(F.doc(F.db, 'listings', rep.listingId), { status: 'active' }));
-    if (listing) btn('حذف الإعلان', 'danger', () => F.deleteDoc(F.doc(F.db, 'listings', rep.listingId)));
+    if (listing) btn('حذف الإعلان', 'danger', async () => {
+      const ph = await F.getDocs(F.collection(F.db, 'listings', rep.listingId, 'photos'));
+      await Promise.all(ph.docs.map((d) => F.deleteDoc(d.ref)));
+      await F.deleteDoc(F.doc(F.db, 'listings', rep.listingId));
+    });
     btn('تجاهل البلاغ', '', () => F.deleteDoc(r.ref));
     row.append(act); out.append(row);
   }

@@ -14,8 +14,8 @@ export const signInWithPopup = async () => { user = { uid: 'u1', displayName: 'Ø
 export const signInWithRedirect = signInWithPopup; export const reauthenticateWithPopup = async () => {};
 export const signOut = async () => { user = null; listeners.forEach((l) => l(null)); };
 export const deleteUser = async () => { user = null; listeners.forEach((l) => l(null)); };
-export const collection = (db, c) => ({ _c: c });
-export const doc = (a, c, id) => a._c ? { _c: a._c, id: 'id' + (++idn) } : { _c: c, id };
+export const collection = (db, ...p) => ({ _c: p.join('/') });
+export const doc = (a, ...p) => a._c ? { _c: a._c, id: 'id' + (++idn) } : { _c: p.slice(0, -1).join('/'), id: p[p.length - 1] };
 export const setDoc = async (r, d) => { (store[r._c] = store[r._c] || {})[r.id] = mat(d); };
 export const updateDoc = async (r, d) => { Object.assign(store[r._c][r.id], mat(d)); };
 export const deleteDoc = async (r) => { delete store[r._c][r.id]; };
@@ -23,6 +23,7 @@ export const getDoc = async (r) => { const v = (store[r._c] || {})[r.id]; return
 export const where = (f, op, v) => ({ w: [f, v] }); export const orderBy = (f, d) => ({ o: [f, d] }); export const limit = (n) => ({ l: n });
 export const query = (c, ...cs) => ({ c, cs });
 export const getDocs = async (q) => {
+  if (q._c !== undefined) q = { c: q, cs: [] };
   let rows = Object.entries(store[q.c._c] || {}).map(([id, v]) => ({ id, v }));
   q.cs.forEach((x) => { if (x.w) rows = rows.filter((r) => { const a = r.v[x.w[0]]; return a === x.w[1]; }); });
   const o = q.cs.find((x) => x.o); if (o) rows.sort((a, b) => b.v[o.o[0]].toMillis() - a.v[o.o[0]].toMillis());

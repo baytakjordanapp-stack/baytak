@@ -1,7 +1,7 @@
 // طبقة البيانات: كل التعامل مع تسجيل الدخول وFirestore وStorage بيمرّ من هون.
 import * as F from './firebase.js';
 
-const { auth, db, storage, OPTIONS, configured } = F;
+const { auth, db, OPTIONS, configured } = F;
 const DAY = 86400000;
 
 export { configured, OPTIONS };
@@ -58,35 +58,39 @@ export async function fetchMine(uid) {
   return (await F.getDocs(q)).docs.map(toItem).sort((a, b) => b.createdAt - a.createdAt);
 }
 
-async function removePhotos(photos) {
-  if (!storage) return;
-  await Promise.all((photos || []).map((p) => F.deleteObject(F.ref(storage, p.path)).catch(() => {})));
+const photosCol = (id) => F.collection(db, 'listings', id, 'photos');
+
+async function deletePhotoDocs(id) {
+  const snap = await F.getDocs(photosCol(id));
+  await Promise.all(snap.docs.map((d) => F.deleteDoc(d.ref)));
 }
 
-// data: الحقول بدون المالك والحالة والتواريخ. files: صور مضغوطة (Blob).
-export async function createListing(user, data, files) {
+// صور العرض الكاملة (بتنحمّل بس لما يفتح الزائر العرض)
+export async function fetchPhotos(id) {
+  const snap = await F.getDocs(photosCol(id));
+  return snap.docs.map((d) => d.data()).sort((a, b) => a.idx - b.idx).map((x) => x.data);
+}
+
+// data: الحقول بدون المالك والحالة والتواريخ. photos: [{full, thumb}] نصوص base64 مصغّرة.
+export async function createListing(user, data, photos) {
+  const list = OPTIONS.photos ? photos.slice(0, OPTIONS.maxPhotos) : [];
   const docRef = F.doc(F.collection(db, 'listings'));
-  const photos = [];
   try {
-    if (storage) {
-      for (let i = 0; i < files.length; i++) {
-        const path = 'listings/' + user.uid + '/' + docRef.id + '/' + i + '.jpg';
-        const r = F.ref(storage, path);
-        await F.uploadBytes(r, files[i], { contentType: 'image/jpeg' });
-        photos.push({ url: await F.getDownloadURL(r), path: path });
-      }
-    }
     await F.setDoc(docRef, Object.assign({}, data, {
       ownerId: user.uid,
       ownerName: String(user.displayName || '').slice(0, 80),
-      photos: photos,
+      thumb: list.length ? list[0].thumb : '',
+      photoCount: list.length,
       status: 'active',
       createdAt: F.serverTimestamp(),
       expiresAt: F.Timestamp.fromMillis(Date.now() + OPTIONS.listingDays * DAY),
     }));
+    for (let i = 0; i < list.length; i++) {
+      await F.setDoc(F.doc(db, 'listings', docRef.id, 'photos', String(i)), { idx: i, data: list[i].full });
+    }
     return docRef.id;
   } catch (e) {
-    await removePhotos(photos);
+    try { await deletePhotoDocs(docRef.id); await F.deleteDoc(docRef); } catch (e2) { /* ignore */ }
     throw e;
   }
 }
@@ -99,7 +103,7 @@ export const renew = (id) => F.updateDoc(F.doc(db, 'listings', id), {
 });
 
 export async function removeListing(item) {
-  await removePhotos(item.photos);
+  await deletePhotoDocs(item.id);
   await F.deleteDoc(F.doc(db, 'listings', item.id));
 }
 

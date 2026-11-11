@@ -11,10 +11,10 @@ export const firebaseConfig = {
 
 export const OPTIONS = {
   // اجعلها false إذا بقيت على خطة Spark المجانية ولا تريد رفع الصور (Storage قد يحتاج خطة الدفع حسب الاستخدام).
-  photos: false,
-  maxPhotos: 8,
+  photos: true,
+  maxPhotos: 5,
   maxListingsPerUser: 30,
   listingDays: 60,
-  fetchLimit: 100,
+  fetchLimit: 40,
   contactEmail: 'baytak.jordan.app@gmail.com',
 };

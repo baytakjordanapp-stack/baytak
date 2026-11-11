@@ -13,7 +13,7 @@ service cloud.firestore {
 
     function validListing(d) {
       return d.keys().hasOnly(['ownerId', 'ownerName', 'type', 'kind', 'city', 'area', 'price', 'rooms',
-                               'baths', 'size', 'furnished', 'phone', 'map', 'desc', 'photos', 'status',
+                               'baths', 'size', 'furnished', 'phone', 'map', 'desc', 'thumb', 'photoCount', 'status',
                                'createdAt', 'expiresAt'])
         && d.ownerId == request.auth.uid
         && d.ownerName is string && d.ownerName.size() <= 80
@@ -29,7 +29,8 @@ service cloud.firestore {
         && d.phone is string && d.phone.matches('^07[789][0-9]{7}$')
         && d.map is string && d.map.size() <= 500
         && d.desc is string && d.desc.size() <= 600
-        && d.photos is list && d.photos.size() <= 8
+        && d.thumb is string && d.thumb.size() <= 40000
+        && d.photoCount is int && d.photoCount >= 0 && d.photoCount <= 5
         && d.status == 'active'
         && d.createdAt == request.time
         && d.expiresAt is timestamp && d.expiresAt > request.time
@@ -55,6 +56,21 @@ service cloud.firestore {
       );
 
       allow delete: if signedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
+
+      // صور العرض: وثيقة لكل صورة (نص base64). بتنقرأ مع العرض وبتنكتب من صاحبه فقط.
+      match /photos/{photoId} {
+        allow read: if get(/databases/$(database)/documents/listings/$(listingId)).data.status == 'active'
+                    || (signedIn() && get(/databases/$(database)/documents/listings/$(listingId)).data.ownerId == request.auth.uid)
+                    || isAdmin();
+        allow create: if signedIn()
+          && get(/databases/$(database)/documents/listings/$(listingId)).data.ownerId == request.auth.uid
+          && request.resource.data.keys().hasOnly(['idx', 'data'])
+          && request.resource.data.idx is int && request.resource.data.idx >= 0 && request.resource.data.idx < 5
+          && request.resource.data.data is string && request.resource.data.data.size() <= 150000
+          && request.resource.data.data.matches('^data:image/jpeg;base64,.*');
+        allow delete: if signedIn()
+          && (get(/databases/$(database)/documents/listings/$(listingId)).data.ownerId == request.auth.uid || isAdmin());
+      }
     }
 
     match /reports/{reportId} {

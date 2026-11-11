@@ -1,7 +1,7 @@
 // بيتك: واجهة التطبيق. البيانات والدخول من data.js، والتصميم من style.css.
 import {
   configured, OPTIONS, watchAuth, signIn, logOut, fetchActive, fetchMine, createListing,
-  setStatus, renew, removeListing, report, deleteAccount,
+  setStatus, renew, removeListing, report, deleteAccount, fetchPhotos,
 } from './data.js';
 
 const CITIES = ['عمّان', 'إربد', 'الزرقاء', 'العقبة', 'السلط', 'مادبا', 'جرش', 'الكرك', 'المفرق', 'معان', 'عجلون', 'الطفيلة'];
@@ -52,8 +52,9 @@ const DEMO = [
 ];
 
 /* ---------- تنظيف بيانات جاية من قاعدة البيانات ---------- */
-function safeHttps(u) {
-  try { const x = new URL(String(u || '')); return x.protocol === 'https:' ? x.href : ''; } catch (e) { return ''; }
+function safeImg(u, max) {
+  u = String(u || '');
+  return u.length <= max && /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(u) ? u : '';
 }
 function safeMap(u) {
   const m = String(u || '').match(/https:\/\/\S+/);
@@ -74,7 +75,7 @@ function clean(it) {
     rooms: clampInt(it.rooms, 0, 20), baths: clampInt(it.baths, 0, 10), size: clampInt(it.size, 0, 100000),
     furnished: !!it.furnished && type === 'rent', phone: String(it.phone || '').replace(/\D/g, '').slice(0, 15),
     map: safeMap(it.map), desc: String(it.desc || '').slice(0, 600),
-    photos: (Array.isArray(it.photos) ? it.photos : []).slice(0, 8).map((p) => ({ url: safeHttps(p && p.url), path: String((p && p.path) || '') })).filter((p) => p.url),
+    thumb: safeImg(it.thumb, 40000), photoCount: clampInt(it.photoCount, 0, 5),
     status: it.status === 'done' ? 'done' : it.status === 'hidden' ? 'hidden' : 'active',
     createdAt: Number(it.createdAt) || 0, expiresAt: Number(it.expiresAt) || 0,
   };
@@ -101,8 +102,7 @@ function art(kind, seed) {
 }
 function seedOf(id) { let h = 0; for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0; return h; }
 function cover(it) {
-  const p = it.photos && it.photos[0];
-  return p ? el('img', { class: 'photo', src: p.url, alt: '', loading: 'lazy' }) : art(it.kind, seedOf(it.id));
+  return it.thumb ? el('img', { class: 'photo', src: it.thumb, alt: '' }) : art(it.kind, seedOf(it.id));
 }
 
 /* ---------- تحميل البيانات ---------- */
@@ -130,7 +130,7 @@ function compute() {
     base = (state.data[tab] || []).filter((i) => i.expiresAt > Date.now());
     const loaded = state.data[tab] !== null;
     if (!configured || (loaded && base.length === 0 && !state.error)) {
-      base = DEMO.filter((d) => d.type === tab).map((d) => Object.assign({ photos: [], map: '', phone: '', ownerId: '', ownerName: '', status: 'active', expiresAt: 0, demo: true }, d));
+      base = DEMO.filter((d) => d.type === tab).map((d) => Object.assign({ thumb: '', photoCount: 0, map: '', phone: '', ownerId: '', ownerName: '', status: 'active', expiresAt: 0, demo: true }, d));
       demo = true;
     }
   }
@@ -190,7 +190,7 @@ function statusBadges(it) {
   const b = [];
   if (it.demo) b.push(el('span', { class: 'badge ex', text: 'مثال' }));
   if (it.furnished) b.push(el('span', { class: 'badge', text: 'مفروش' }));
-  if (it.photos.length > 1) b.push(el('span', { class: 'badge', text: it.photos.length + ' صور' }));
+  if (it.photoCount > 1) b.push(el('span', { class: 'badge', text: it.photoCount + ' صور' }));
   if (it.status === 'hidden') b.push(el('span', { class: 'badge ex', text: 'مخفي من الإدارة' }));
   else if (it.status === 'done') b.push(el('span', { class: 'badge done', text: it.type === 'rent' ? 'تم التأجير' : 'تم البيع' }));
   else if (!it.demo && it.expiresAt && it.expiresAt < Date.now()) b.push(el('span', { class: 'badge done', text: 'منتهي' }));
@@ -252,7 +252,16 @@ function openDetail(it) {
   const mapBlock = el('div', { class: 'contact' }, el('span', { class: 'loc', text: it.map ? 'الموقع الدقيق حسب المعلن' : 'الموقع التقريبي حسب المنطقة' }),
     el('a', { class: 'btn', href: mapUrl(it), target: '_blank', rel: 'noopener noreferrer', text: '📍 افتح على خرائط جوجل' }));
   const date = it.createdAt ? new Date(it.createdAt).toLocaleDateString('en-GB') : '';
-  const media = it.photos.length ? el('div', { class: 'gallery' }, it.photos.map((p) => el('img', { class: 'photo', src: p.url, alt: '', loading: 'lazy' }))) : art(it.kind, seedOf(it.id));
+  let media;
+  if (it.thumb) {
+    media = el('div', { class: 'gallery' }, el('img', { class: 'photo', src: it.thumb, alt: '' }));
+    if (it.photoCount > 0) {
+      fetchPhotos(it.id).then((list) => {
+        const good = list.map((u) => safeImg(u, 150000)).filter(Boolean);
+        if (good.length) media.replaceChildren(...good.map((u) => el('img', { class: 'photo', src: u, alt: '' })));
+      }).catch(() => {});
+    }
+  } else media = art(it.kind, seedOf(it.id));
   const body = el('div', { class: 'pad', style: 'display:flex;flex-direction:column;gap:12px' },
     el('div', { class: 'sheethead' }, el('div', {}, priceLine(it), el('h2', { text: titleOf(it) })), el('button', { class: 'x', type: 'button', onclick: () => dlg.close(), 'aria-label': 'إغلاق', text: '✕' })),
     el('div', { class: 'loc', text: '📍 ' + it.city + (date ? '  ·  نُشر ' + date : '') }),
@@ -330,26 +339,33 @@ const normPhone = (raw) => {
   return /^07[789]\d{7}$/.test(d) ? d : null;
 };
 
+// تصغير الصورة لنص base64 (JPEG) بحجم يتحمله Firestore: الكاملة حتى 130 ألف حرف، والمصغّرة للبطاقة حتى 30 ألف.
+function encode(bmp, maxDim, maxLen) {
+  const s = Math.min(1, maxDim / Math.max(bmp.width, bmp.height));
+  const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(bmp.width * s)); c.height = Math.max(1, Math.round(bmp.height * s));
+  const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); x.drawImage(bmp, 0, 0, c.width, c.height);
+  let q = 0.7, out = c.toDataURL('image/jpeg', q);
+  while (out.length > maxLen && q > 0.25) { q -= 0.1; out = c.toDataURL('image/jpeg', q); }
+  return out.length <= maxLen ? out : null;
+}
 async function shrink(file) {
   const bmp = await createImageBitmap(file);
-  const s = Math.min(1, 1280 / Math.max(bmp.width, bmp.height));
-  const c = document.createElement('canvas'); c.width = Math.round(bmp.width * s); c.height = Math.round(bmp.height * s);
-  c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
-  let q = 0.82, blob;
-  do { blob = await new Promise((r) => c.toBlob(r, 'image/jpeg', q)); q -= 0.15; } while (blob && blob.size >= 900 * 1024 && q > 0.3);
-  return blob;
+  const full = encode(bmp, 1000, 130000) || encode(bmp, 700, 130000);
+  const thumb = encode(bmp, 320, 30000) || encode(bmp, 200, 30000);
+  if (bmp.close) bmp.close();
+  return full && thumb ? { full, thumb } : null;
 }
 function drawThumbs() {
   const t = $('thumbs'); t.replaceChildren();
-  state.photos.forEach((p, i) => t.append(el('div', { class: 'th' }, el('img', { src: p.url, alt: '' }),
-    el('button', { type: 'button', 'aria-label': 'حذف الصورة', text: '✕', onclick: () => { URL.revokeObjectURL(p.url); state.photos.splice(i, 1); drawThumbs(); } }))));
+  state.photos.forEach((p, i) => t.append(el('div', { class: 'th' }, el('img', { src: p.full, alt: '' }),
+    el('button', { type: 'button', 'aria-label': 'حذف الصورة', text: '✕', onclick: () => { state.photos.splice(i, 1); drawThumbs(); } }))));
 }
 async function onPhotos(e) {
   const files = Array.from(e.target.files || []); e.target.value = '';
   for (const f of files) {
     if (state.photos.length >= OPTIONS.maxPhotos) { toast('الحد الأقصى ' + OPTIONS.maxPhotos + ' صور'); break; }
     if (!/^image\//.test(f.type)) continue;
-    try { const blob = await shrink(f); if (blob) state.photos.push({ blob, url: URL.createObjectURL(blob) }); } catch (err) { toast('تعذر قراءة إحدى الصور'); }
+    try { const p = await shrink(f); if (p) state.photos.push(p); else toast('تعذر تصغير إحدى الصور'); } catch (err) { toast('تعذر قراءة إحدى الصور'); }
   }
   drawThumbs();
 }
@@ -377,7 +393,7 @@ async function submitForm(e) {
     const mine = state.mine || (await fetchMine(state.user.uid));
     if (mine.length >= OPTIONS.maxListingsPerUser) { err.textContent = 'وصلت للحد الأقصى (' + OPTIONS.maxListingsPerUser + ' عرض). احذف عرضاً قديماً أولاً.'; btn.disabled = false; return; }
     if (state.photos.length) err.textContent = 'جارٍ رفع الصور...';
-    await createListing(state.user, data, state.photos.map((p) => p.blob));
+    await createListing(state.user, data, state.photos);
     err.textContent = ''; $('formDlg').close(); toast('تم نشر عرضك');
     state.data = { rent: null, sale: null }; state.mine = null;
     go(type);

@@ -9,7 +9,7 @@ const srv = http.createServer((q, s) => { let p = path.join(root, decodeURICompo
     pg.on('pageerror', (e) => errs.push(e.message)); pg.on('console', (m) => m.type() === 'error' && !/font|net::/i.test(m.text()) && errs.push(m.text()));
     await pg.route('https://www.gstatic.com/**', (r) => r.fulfill({ contentType: 'text/javascript', body: fake }));
     await pg.route('https://fonts.googleapis.com/**', (r) => r.abort());
-    if (configured) await pg.route('**/js/config.js', (r) => r.fulfill({ contentType: 'text/javascript', body: "export const firebaseConfig={apiKey:'x'};export const OPTIONS={photos:true,maxPhotos:8,maxListingsPerUser:30,listingDays:60,fetchLimit:100,contactEmail:'a@b.c'};" }));
+    if (configured) await pg.route('**/js/config.js', (r) => r.fulfill({ contentType: 'text/javascript', body: "export const firebaseConfig={apiKey:'x'};export const OPTIONS={photos:true,maxPhotos:5,maxListingsPerUser:30,listingDays:60,fetchLimit:100,contactEmail:'a@b.c'};" }));
     await pg.goto('http://localhost:' + port + '/index.html'); return pg;
   }
   // 1) غير مربوط: عروض تجريبية
@@ -29,19 +29,26 @@ const srv = http.createServer((q, s) => { let p = path.join(root, decodeURICompo
   await pg.fill('#n-phone', '+962 79 123 4567'); await pg.fill('#n-map', 'https://evil.com/maps'); await pg.click('#submitBtn');
   ok((await pg.textContent('#formErr')).includes('خرائط'), 'bad map rejected');
   await pg.fill('#n-map', 'https://maps.app.goo.gl/abc123'); await pg.fill('#n-desc', '<img src=x onerror=alert(1)>');
+  await pg.setInputFiles('#n-photos', path.join(root, 'icons', 'icon-512.png')); await pg.waitForSelector('#thumbs img');
+  ok(await pg.locator('#thumbs img').count() === 1, 'photo added to form');
   await pg.click('#submitBtn'); await pg.waitForSelector('#formDlg:not([open])',{state:'attached'});
   await pg.waitForSelector('.card:not(:has(.badge.ex))');
   ok(await pg.locator('.card').count() === 1, 'listing published and shown (demo gone)');
+  ok(await pg.locator('.card img.photo[src^="data:image/jpeg;base64,"]').count() === 1, 'card shows photo thumb');
+  const stored = await pg.evaluate(() => Object.keys(window.__db['listings/' + Object.keys(window.__db.listings)[0] + '/photos'] || {}).length);
+  ok(stored === 1, 'photo doc stored in subcollection');
   await pg.click('.card'); await pg.waitForSelector('#detail[open]');
   ok(await pg.locator('#detail a[href^="https://wa.me/962791234567"]').count() === 1, 'whatsapp link normalized');
   ok(await pg.locator('#detail a[href="https://maps.app.goo.gl/abc123"]').count() === 1, 'map link used');
   ok(await pg.locator('#detail img[src="x"]').count() === 0, 'no html injection');
+  ok(await pg.locator('#detail .gallery img[src^="data:image/jpeg"]').count() === 1, 'detail gallery shows photo');
   await pg.keyboard.press('Escape');
   await pg.click('#t-mine'); await pg.waitForSelector('.card');
   await pg.click('.card'); await pg.getByRole('button', { name: 'تعليم كمؤجّر' }).click(); await pg.waitForSelector('.badge.done');
   ok(true, 'mark done');
   await pg.click('.card'); await pg.getByRole('button', { name: 'حذف العرض' }).click(); await pg.getByRole('button', { name: /مرة ثانية/ }).click();
   await pg.waitForSelector('.empty'); ok((await pg.textContent('.empty')).includes('ما نشرت'), 'delete works');
+  ok(await pg.evaluate(() => Object.values(window.__db).every((c) => Object.keys(c).length === 0)), 'photos deleted with listing');
   await pg.screenshot({ path: path.join(__dirname, 'shot.png') });
   // admin + static pages
   for (const f of ['privacy.html', 'terms.html', 'admin.html']) { const p2 = await open(true); await p2.goto('http://localhost:' + port + '/' + f); await p2.waitForTimeout(300); }
