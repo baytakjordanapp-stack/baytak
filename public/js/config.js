@@ -7,6 +7,7 @@ export const firebaseConfig = {
   storageBucket: 'baytak-21d0e.firebasestorage.app',
   messagingSenderId: '815944191226',
   appId: '1:815944191226:web:eb39b678a3a687916a8d43',
+  measurementId: 'G-8VB3JH7BXB',
 };
 
 export const OPTIONS = {

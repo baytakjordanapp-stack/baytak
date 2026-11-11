@@ -6,6 +6,7 @@ export const Timestamp = { fromMillis: TS };
 export const serverTimestamp = () => ({ __st: true });
 const mat = (o) => { const r = {}; for (const k in o) r[k] = o[k] && o[k].__st ? TS(Date.now()) : o[k]; return r; };
 export const initializeApp = () => ({});
+export const getAnalytics = () => ({}); export const isSupported = async () => true;
 export const getAuth = () => ({}); export const getFirestore = () => ({}); export const getStorage = () => ({});
 export class GoogleAuthProvider {}
 export const onAuthStateChanged = (a, cb) => { listeners.push(cb); setTimeout(() => cb(user), 0); return () => {}; };
